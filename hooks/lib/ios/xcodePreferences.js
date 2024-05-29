@@ -133,26 +133,41 @@ function isPbxReferenceAlreadySet(fileReferenceSection, entitlementsRelativeFile
  * @return {Object} projectFile - project file information
  */
 function loadProjectFile() {
-    var platform_ios;
-    var projectFile;
+  var platform_ios;
+  var projectFile;
+
+  try {
+    // try pre-5.0 cordova structure
+    platform_ios = context.requireCordovaModule('cordova-lib/src/plugman/platforms')['ios'];
+    projectFile = platform_ios.parseProjectFile(iosPlatformPath());
+  } catch (e) {
+    // let's try cordova 5.0 structure
     try {
-        // try pre-5.0 cordova structure
-        platform_ios = context.requireCordovaModule('cordova-lib/src/plugman/platforms')['ios'];
-        projectFile = platform_ios.parseProjectFile(iosPlatformPath());
-    } catch (e) {
-        try {
-            // let's try cordova 5.0 structure
-            platform_ios = context.requireCordovaModule('cordova-lib/src/plugman/platforms/ios');
-            projectFile = platform_ios.parse(iosPlatformPath());
-        } catch (e) {
-            // try cordova 7.0 structure
-            var iosPlatformApi = require(path.join(iosPlatformPath(), '/cordova/Api'));
-            var projectFileApi = require(path.join(iosPlatformPath(), '/cordova/lib/projectFile.js'));
-            var locations = (new iosPlatformApi()).locations;
-            projectFile = projectFileApi.parse(locations);
-        }
+      platform_ios = context.requireCordovaModule('cordova-lib/src/plugman/platforms/ios');
+      projectFile = platform_ios.parseProjectFile(iosPlatformPath());
+    } catch(e) {
+      try {
+        // try cordova 7.0 structure
+        var iosPlatformApi = require(path.join(iosPlatformPath(), '/cordova/Api'));
+        var projectFileApi = require(path.join(iosPlatformPath(), '/cordova/lib/projectFile.js'));
+        var locations = (new iosPlatformApi()).locations;
+        projectFile = projectFileApi.parse(locations);
+      } catch (e) {
+        // try cordova 7.0.1 structure. This is necessary following the release of
+        // cordova-ios MR 1203, which stopped copying .js files into /lib:
+        // https://github.com/apache/cordova-ios/pull/1203
+        // source:
+        //   https://github.com/nordnet/cordova-universal-links-plugin/commit/fcf5ff88f577d5e4dc90f7ad33f4e43298f492e9
+        var iosPlatformApi = require('cordova-ios/lib/Api.js');
+        var projectFileApi = require('cordova-ios/lib/projectFile.js');
+        platformApi = new iosPlatformApi("ios", iosPlatformPath());
+        var locations = platformApi.locations;
+        projectFile = projectFileApi.parse(locations);
+      }
     }
-    return projectFile;
+  }
+
+  return projectFile;
 }
 
 /**

@@ -51,11 +51,14 @@ function readPreferences(cordovaContext) {
 // region Private API
 
 function getTeamIdPreference(xmlPreferences) {
-  if (xmlPreferences.hasOwnProperty('ios-team-id')) {
-    return xmlPreferences['ios-team-id'][0]['$']['value'];
+  var teamId = xmlPreferences['ios-team-id']
+  try {
+    if (teamId) {
+      return teamId[0]['$']['value'];
+    }
+  } catch (ex) {
+    return null;
   }
-
-  return null;
 }
 
 /**
